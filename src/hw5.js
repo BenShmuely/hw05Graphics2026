@@ -28,7 +28,14 @@ const LANE_DIMENSIONS = {
   approachLength: 15,
   gutterWidth: 0.4,
   gutterDrop: 0.06,
-  markingLift: 0.002
+  markingLift: 0.002,
+  pinHeight: 1.25,
+  pinBaseRadius: 0.18,
+  pinNeckRadius: 0.08,
+  pinStripeHeight: 0.08,
+  pinStripeRadius: 0.095,
+  pinDeckLength: 6,
+  pinDeckZCenter: -62.5
 };
 
 const MATERIALS = {
@@ -47,8 +54,33 @@ const MATERIALS = {
   gutter: new THREE.MeshPhongMaterial({
     color: 0x4A5568,
     shininess: 25
+  }),
+  pinBody: new THREE.MeshPhongMaterial({
+    color: 0xFAFAFA,
+    shininess: 90
+  }),
+  pinStripe: new THREE.MeshPhongMaterial({
+    color: 0xB22222,
+    shininess: 55
+  }),
+  pinDeck: new THREE.MeshPhongMaterial({
+    color: 0xD7B17C,
+    shininess: 70
   })
 };
+
+const PIN_POSITIONS = [
+  {x: 0.0, z: -57.000},
+  {x: -0.5, z: -57.866},
+  {x: 0.5, z: -57.866},
+  {x: -1.0, z: -58.732},
+  {x: 0.0, z: -58.732},
+  {x: 1.0, z: -58.732},
+  {x: -1.5, z: -59.598},
+  {x: -0.5, z: -59.598},
+  {x: 0.5, z: -59.598},
+  {x: 1.5, z: -59.598}
+];
 
 function getLaneTopY() {
   return LANE_DIMENSIONS.laneHeight / 2;
@@ -60,6 +92,10 @@ function getMarkingY() {
 
 function getRaisedCenterY(thickness) {
   return getLaneTopY() + (thickness / 2) + LANE_DIMENSIONS.markingLift;
+}
+
+function getPinCenterY() {
+  return getLaneTopY() + (LANE_DIMENSIONS.pinHeight / 2);
 }
 
 function setStaticShadow(mesh, {castShadow = false, receiveShadow = false} = {}) {
@@ -173,6 +209,75 @@ function createLaneArrows() {
   return arrowGroup;
 }
 
+function createPinDeck() {
+  const pinDeckGeometry = new THREE.BoxGeometry(
+    LANE_DIMENSIONS.laneWidth,
+    LANE_DIMENSIONS.laneHeight,
+    LANE_DIMENSIONS.pinDeckLength
+  );
+  const pinDeck = new THREE.Mesh(pinDeckGeometry, MATERIALS.pinDeck);
+  pinDeck.position.set(0, 0, LANE_DIMENSIONS.pinDeckZCenter);
+
+  return setStaticShadow(pinDeck, {receiveShadow: true});
+}
+
+function createPinGeometry() {
+  const halfHeight = LANE_DIMENSIONS.pinHeight / 2;
+  const profile = [
+    new THREE.Vector2(0.0, -halfHeight),
+    new THREE.Vector2(0.12, -halfHeight + 0.02),
+    new THREE.Vector2(LANE_DIMENSIONS.pinBaseRadius, -0.48),
+    new THREE.Vector2(0.21, -0.28),
+    new THREE.Vector2(0.23, -0.05),
+    new THREE.Vector2(0.19, 0.18),
+    new THREE.Vector2(0.13, 0.34),
+    new THREE.Vector2(LANE_DIMENSIONS.pinNeckRadius, 0.49),
+    new THREE.Vector2(0.07, 0.58),
+    new THREE.Vector2(0.045, halfHeight - 0.08),
+    new THREE.Vector2(0.0, halfHeight)
+  ];
+
+  return new THREE.LatheGeometry(profile, 48);
+}
+
+function createBowlingPin() {
+  const pinGroup = new THREE.Group();
+  const pinBody = new THREE.Mesh(createPinGeometry(), MATERIALS.pinBody);
+  setStaticShadow(pinBody, {castShadow: true, receiveShadow: true});
+  pinGroup.add(pinBody);
+
+  const stripe = new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      LANE_DIMENSIONS.pinStripeRadius,
+      LANE_DIMENSIONS.pinStripeRadius,
+      LANE_DIMENSIONS.pinStripeHeight,
+      32,
+      1,
+      true
+    ),
+    MATERIALS.pinStripe
+  );
+  stripe.position.y = 0.37;
+  setStaticShadow(stripe, {castShadow: true, receiveShadow: true});
+  pinGroup.add(stripe);
+
+  return pinGroup;
+}
+
+function createPinSet() {
+  const pinSet = new THREE.Group();
+  const pinTemplate = createBowlingPin();
+  const pinY = getPinCenterY();
+
+  PIN_POSITIONS.forEach(({x, z}) => {
+    const pin = pinTemplate.clone();
+    pin.position.set(x, pinY, z);
+    pinSet.add(pin);
+  });
+
+  return pinSet;
+}
+
 // Create bowling lane
 function createBowlingLane() {
   const laneGroup = new THREE.Group();
@@ -187,6 +292,8 @@ function createBowlingLane() {
 
 // Create all elements
 createBowlingLane();
+scene.add(createPinDeck());
+scene.add(createPinSet());
 
 // Set camera position for bowler's perspective
 const cameraTranslate = new THREE.Matrix4();
