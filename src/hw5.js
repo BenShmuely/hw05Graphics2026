@@ -36,6 +36,11 @@ const LANE_DIMENSIONS = {
   pinStripeTopRadius: 0.089,
   pinStripeBottomRadius: 0.084,
   pinStripeCenterY: 0.315,
+  ballRadius: 0.45,
+  ballCenterZ: 7.5,
+  ballHoleRadius: 0.052,
+  ballHoleDepth: 0.15,
+  ballHoleSurfaceInset: 0.002,
   pinDeckLength: 6,
   pinDeckZCenter: -62.5
 };
@@ -68,6 +73,19 @@ const MATERIALS = {
   pinDeck: new THREE.MeshPhongMaterial({
     color: 0xD7B17C,
     shininess: 70
+  }),
+  bowlingBall: new THREE.MeshPhongMaterial({
+    color: 0x1f3a5f,
+    shininess: 140,
+    specular: new THREE.Color(0x9bb8ff)
+  }),
+  ballHole: new THREE.MeshPhongMaterial({
+    color: 0x141414,
+    shininess: 10,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2
   })
 };
 
@@ -122,6 +140,10 @@ function getRaisedCenterY(thickness) {
 
 function getPinCenterY() {
   return getLaneTopY() + (LANE_DIMENSIONS.pinHeight / 2);
+}
+
+function getBallCenterY() {
+  return getLaneTopY() + LANE_DIMENSIONS.ballRadius;
 }
 
 function setStaticShadow(mesh, {castShadow = false, receiveShadow = false} = {}) {
@@ -319,6 +341,54 @@ function createPinSet() {
   return pinSet;
 }
 
+function createBallHole(directionVector) {
+  const hole = new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      LANE_DIMENSIONS.ballHoleRadius,
+      LANE_DIMENSIONS.ballHoleRadius,
+      LANE_DIMENSIONS.ballHoleDepth,
+      24,
+      1,
+      false
+    ),
+    MATERIALS.ballHole
+  );
+
+  const holeDirection = directionVector.clone().normalize();
+  const holeCenter = holeDirection.clone().multiplyScalar(
+    LANE_DIMENSIONS.ballRadius - (LANE_DIMENSIONS.ballHoleDepth / 2) - LANE_DIMENSIONS.ballHoleSurfaceInset
+  );
+  const rotation = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    holeDirection
+  );
+
+  hole.position.copy(holeCenter);
+  hole.setRotationFromQuaternion(rotation);
+  hole.renderOrder = 2;
+
+  setStaticShadow(hole, {castShadow: true, receiveShadow: true});
+  return hole;
+}
+
+function createBowlingBall() {
+  const ballGroup = new THREE.Group();
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(LANE_DIMENSIONS.ballRadius, 48, 36),
+    MATERIALS.bowlingBall
+  );
+  setStaticShadow(ball, {castShadow: true, receiveShadow: true});
+  ballGroup.add(ball);
+
+  ballGroup.add(createBallHole(new THREE.Vector3(-0.16, 0.985, 0.02)));
+  ballGroup.add(createBallHole(new THREE.Vector3(0.16, 0.985, 0.02)));
+  ballGroup.add(createBallHole(new THREE.Vector3(0.03, 0.9, 0.28)));
+
+  ballGroup.position.set(0, getBallCenterY(), LANE_DIMENSIONS.ballCenterZ);
+
+  return ballGroup;
+}
+
 // Create bowling lane
 function createBowlingLane() {
   const laneGroup = new THREE.Group();
@@ -335,6 +405,7 @@ function createBowlingLane() {
 createBowlingLane();
 scene.add(createPinDeck());
 scene.add(createPinSet());
+scene.add(createBowlingBall());
 
 // Orbit controls
 const controls = new OrbitControls(camera, renderer.domElement);
