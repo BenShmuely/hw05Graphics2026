@@ -82,6 +82,30 @@ const PIN_POSITIONS = [
   {x: 1.5, z: -59.598}
 ];
 
+const CAMERA_PRESETS = [
+  {
+    id: 'default',
+    label: 'Default View',
+    key: '1',
+    position: {x: 0, y: 5, z: 12},
+    target: {x: 0, y: 0.8, z: -2}
+  },
+  {
+    id: 'bowlerEnd',
+    label: 'Bowler End',
+    key: '2',
+    position: {x: 0, y: 6.5, z: 18},
+    target: {x: 0, y: 1.1, z: -28}
+  },
+  {
+    id: 'pinEnd',
+    label: 'Pin End',
+    key: '3',
+    position: {x: 0, y: 3.2, z: -68},
+    target: {x: 0, y: 1.0, z: -42}
+  }
+];
+
 function getLaneTopY() {
   return LANE_DIMENSIONS.laneHeight / 2;
 }
@@ -295,14 +319,80 @@ createBowlingLane();
 scene.add(createPinDeck());
 scene.add(createPinSet());
 
-// Set camera position for bowler's perspective
-const cameraTranslate = new THREE.Matrix4();
-cameraTranslate.makeTranslation(0, 5, 12);
-camera.applyMatrix4(cameraTranslate);
-
 // Orbit controls
 const controls = new OrbitControls(camera, renderer.domElement);
 let isOrbitEnabled = true;
+let activeCameraPresetId = null;
+const cameraPresetButtons = new Map();
+
+function setActiveCameraPreset(presetId) {
+  activeCameraPresetId = presetId;
+
+  cameraPresetButtons.forEach((button, buttonPresetId) => {
+    const isActive = buttonPresetId === presetId;
+    button.style.backgroundColor = isActive ? '#f59e0b' : '#243b55';
+    button.style.color = isActive ? '#111827' : '#f8fafc';
+    button.style.borderColor = isActive ? '#fcd34d' : '#4b6584';
+  });
+}
+
+function applyCameraPreset(presetId) {
+  const preset = CAMERA_PRESETS.find((entry) => entry.id === presetId);
+  if (!preset) {
+    return;
+  }
+
+  camera.position.set(preset.position.x, preset.position.y, preset.position.z);
+  controls.target.set(preset.target.x, preset.target.y, preset.target.z);
+  controls.update();
+  setActiveCameraPreset(preset.id);
+}
+
+function getCameraPresetByKey(key) {
+  return CAMERA_PRESETS.find((preset) => preset.key === key) || null;
+}
+
+function createCameraPresetUI() {
+  const cameraSection = document.createElement('div');
+  cameraSection.style.marginTop = '16px';
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'Camera Views';
+  heading.style.margin = '0 0 8px 0';
+  heading.style.fontSize = '18px';
+  cameraSection.appendChild(heading);
+
+  const hint = document.createElement('p');
+  hint.textContent = 'Press 1-3 or use the buttons below.';
+  hint.style.margin = '0 0 10px 0';
+  hint.style.fontSize = '14px';
+  hint.style.color = '#dbeafe';
+  cameraSection.appendChild(hint);
+
+  const buttonRow = document.createElement('div');
+  buttonRow.style.display = 'flex';
+  buttonRow.style.flexWrap = 'wrap';
+  buttonRow.style.gap = '8px';
+
+  CAMERA_PRESETS.forEach((preset) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = `${preset.key}. ${preset.label}`;
+    button.style.padding = '8px 10px';
+    button.style.border = '1px solid #4b6584';
+    button.style.borderRadius = '6px';
+    button.style.backgroundColor = '#243b55';
+    button.style.color = '#f8fafc';
+    button.style.fontSize = '13px';
+    button.style.cursor = 'pointer';
+    button.addEventListener('click', () => applyCameraPreset(preset.id));
+    cameraPresetButtons.set(preset.id, button);
+    buttonRow.appendChild(button);
+  });
+
+  cameraSection.appendChild(buttonRow);
+  return cameraSection;
+}
 
 // Instructions display
 const instructionsElement = document.createElement('div');
@@ -313,16 +403,32 @@ instructionsElement.style.color = 'white';
 instructionsElement.style.fontSize = '16px';
 instructionsElement.style.fontFamily = 'Arial, sans-serif';
 instructionsElement.style.textAlign = 'left';
+instructionsElement.style.padding = '14px 16px';
+instructionsElement.style.backgroundColor = 'rgba(15, 23, 42, 0.72)';
+instructionsElement.style.border = '1px solid rgba(148, 163, 184, 0.35)';
+instructionsElement.style.borderRadius = '10px';
+instructionsElement.style.maxWidth = '320px';
 instructionsElement.innerHTML = `
-  <h3>Bowling Alley Controls:</h3>
-  <p>O - Toggle orbit camera</p>
+  <h3 style="margin: 0 0 8px 0;">Bowling Alley Controls</h3>
+  <p style="margin: 0 0 4px 0;">O - Toggle orbit camera</p>
+  <p style="margin: 0;">1 / 2 / 3 - Switch camera presets</p>
 `;
+instructionsElement.appendChild(createCameraPresetUI());
 document.body.appendChild(instructionsElement);
+applyCameraPreset('default');
 
 // Handle key events
 function handleKeyDown(e) {
-  if (e.key === "o") {
+  const normalizedKey = e.key.toLowerCase();
+
+  if (normalizedKey === "o") {
     isOrbitEnabled = !isOrbitEnabled;
+    return;
+  }
+
+  const preset = getCameraPresetByKey(e.key);
+  if (preset) {
+    applyCameraPreset(preset.id);
   }
 }
 
