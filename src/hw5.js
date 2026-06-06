@@ -30,10 +30,12 @@ const LANE_DIMENSIONS = {
   gutterDrop: 0.06,
   markingLift: 0.002,
   pinHeight: 1.25,
-  pinBaseRadius: 0.18,
-  pinNeckRadius: 0.08,
-  pinStripeHeight: 0.08,
-  pinStripeRadius: 0.095,
+  pinBaseRadius: 0.199,
+  pinNeckRadius: 0.075,
+  pinStripeHeight: 0.075,
+  pinStripeTopRadius: 0.089,
+  pinStripeBottomRadius: 0.084,
+  pinStripeCenterY: 0.315,
   pinDeckLength: 6,
   pinDeckZCenter: -62.5
 };
@@ -247,18 +249,33 @@ function createPinDeck() {
 
 function createPinGeometry() {
   const halfHeight = LANE_DIMENSIONS.pinHeight / 2;
+  const inchesToUnits = (inches) => inches / 12;
+  const yFromBaseInches = (inchesAboveBase) => inchesToUnits(inchesAboveBase) - halfHeight;
+  const radiusFromDiameterInches = (diameterInches) => inchesToUnits(diameterInches / 2);
+
+  // USBC bowling pin measurement stations, scaled from 15 inches to 1.25 scene units.
   const profile = [
-    new THREE.Vector2(0.0, -halfHeight),
-    new THREE.Vector2(0.12, -halfHeight + 0.02),
-    new THREE.Vector2(LANE_DIMENSIONS.pinBaseRadius, -0.48),
-    new THREE.Vector2(0.21, -0.28),
-    new THREE.Vector2(0.23, -0.05),
-    new THREE.Vector2(0.19, 0.18),
-    new THREE.Vector2(0.13, 0.34),
-    new THREE.Vector2(LANE_DIMENSIONS.pinNeckRadius, 0.49),
-    new THREE.Vector2(0.07, 0.58),
-    new THREE.Vector2(0.045, halfHeight - 0.08),
-    new THREE.Vector2(0.0, halfHeight)
+    new THREE.Vector2(radiusFromDiameterInches(2.031), yFromBaseInches(0.0)),
+    new THREE.Vector2(radiusFromDiameterInches(2.828), yFromBaseInches(0.75)),
+    new THREE.Vector2(radiusFromDiameterInches(3.906), yFromBaseInches(2.25)),
+    new THREE.Vector2(radiusFromDiameterInches(4.510), yFromBaseInches(3.375)),
+    new THREE.Vector2(radiusFromDiameterInches(4.766), yFromBaseInches(4.5)),
+    new THREE.Vector2(radiusFromDiameterInches(4.563), yFromBaseInches(5.875)),
+    new THREE.Vector2(radiusFromDiameterInches(3.703), yFromBaseInches(7.25)),
+    new THREE.Vector2(radiusFromDiameterInches(2.472), yFromBaseInches(8.625)),
+    new THREE.Vector2(radiusFromDiameterInches(1.965), yFromBaseInches(9.375)),
+    new THREE.Vector2(radiusFromDiameterInches(1.797), yFromBaseInches(10.0)),
+    new THREE.Vector2(radiusFromDiameterInches(1.870), yFromBaseInches(10.875)),
+    new THREE.Vector2(radiusFromDiameterInches(2.094), yFromBaseInches(11.75)),
+    new THREE.Vector2(radiusFromDiameterInches(2.406), yFromBaseInches(12.625)),
+    new THREE.Vector2(radiusFromDiameterInches(2.547), yFromBaseInches(13.5)),
+    new THREE.Vector2(0.094, yFromBaseInches(13.95)),
+    new THREE.Vector2(0.088, yFromBaseInches(14.22)),
+    new THREE.Vector2(0.073, yFromBaseInches(14.48)),
+    new THREE.Vector2(0.05, yFromBaseInches(14.7)),
+    new THREE.Vector2(0.028, yFromBaseInches(14.86)),
+    new THREE.Vector2(0.012, yFromBaseInches(14.95)),
+    new THREE.Vector2(0.0, yFromBaseInches(15.0))
   ];
 
   return new THREE.LatheGeometry(profile, 48);
@@ -272,8 +289,8 @@ function createBowlingPin() {
 
   const stripe = new THREE.Mesh(
     new THREE.CylinderGeometry(
-      LANE_DIMENSIONS.pinStripeRadius,
-      LANE_DIMENSIONS.pinStripeRadius,
+      LANE_DIMENSIONS.pinStripeTopRadius,
+      LANE_DIMENSIONS.pinStripeBottomRadius,
       LANE_DIMENSIONS.pinStripeHeight,
       32,
       1,
@@ -281,7 +298,7 @@ function createBowlingPin() {
     ),
     MATERIALS.pinStripe
   );
-  stripe.position.y = 0.37;
+  stripe.position.y = LANE_DIMENSIONS.pinStripeCenterY;
   setStaticShadow(stripe, {castShadow: true, receiveShadow: true});
   pinGroup.add(stripe);
 
