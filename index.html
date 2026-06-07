@@ -186,11 +186,47 @@
 				cursor: pointer;
 			}
 
-			#camera-status {
-				margin-top: 10px;
-				font-size: 13px;
-				color: #dbeafe;
-			}
+				#camera-status {
+					margin-top: 10px;
+					font-size: 13px;
+					color: #dbeafe;
+				}
+
+				#rolling-camera-section {
+					margin-top: 16px;
+					padding-top: 14px;
+					border-top: 1px solid var(--score-line);
+				}
+
+				#rolling-camera-section h3 {
+					margin: 0;
+					font-size: 16px;
+					font-weight: 700;
+				}
+
+				#rolling-camera-section p {
+					margin-top: 6px;
+				}
+
+				#rolling-camera-slider-row {
+					margin-top: 10px;
+					display: flex;
+					align-items: center;
+					gap: 12px;
+				}
+
+				#rolling-camera-slider {
+					flex: 1;
+					width: 100%;
+					accent-color: var(--panel-accent);
+				}
+
+				#rolling-camera-progress {
+					min-width: 44px;
+					text-align: right;
+					font-size: 13px;
+					color: #fcd34d;
+				}
 
 			@media (max-width: 1080px) {
 				body {
@@ -295,15 +331,23 @@
 						<p><strong>1 / 2 / 3</strong> switch between the saved camera views.</p>
 						<p>This panel is reserved for HW06 aiming, power, and release instructions.</p>
 					</div>
-					<div id="camera-preset-section">
-						<h3>Camera Views</h3>
-						<p>Switch viewpoints with the keyboard or the buttons below.</p>
-						<div id="camera-preset-buttons"></div>
-						<div id="camera-status">Active view: Default View</div>
-					</div>
-					<div id="future-controls-note">
-						<p>Future interactive widgets will appear here: aim mode, power meter, and frame-by-frame prompts.</p>
-					</div>
+						<div id="camera-preset-section">
+							<h3>Camera Views</h3>
+							<p>Switch viewpoints with the keyboard or the buttons below.</p>
+							<div id="camera-preset-buttons"></div>
+							<div id="camera-status">Active view: Default View</div>
+						</div>
+						<div id="rolling-camera-section">
+							<h3>Rolling Camera</h3>
+							<p>Scrub the camera from the default bowler view down the lane toward the pins.</p>
+							<div id="rolling-camera-slider-row">
+								<input id="rolling-camera-slider" type="range" min="0" max="100" value="0" step="1" aria-label="Rolling camera progress">
+								<div id="rolling-camera-progress">0%</div>
+							</div>
+						</div>
+						<div id="future-controls-note">
+							<p>Future interactive widgets will appear here: aim mode, power meter, and frame-by-frame prompts.</p>
+						</div>
 				</section>
 			</div>
 		</div>

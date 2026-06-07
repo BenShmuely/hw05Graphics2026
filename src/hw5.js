@@ -195,6 +195,22 @@ const CAMERA_PRESETS = [
   }
 ];
 
+const DEFAULT_CAMERA_PRESET = CAMERA_PRESETS.find((preset) => preset.id === 'default');
+const ROLLING_CAMERA_SLIDER_MAX = 100;
+const ROLLING_CAMERA_PATH = {
+  start: new THREE.Vector3(
+    DEFAULT_CAMERA_PRESET.position.x,
+    DEFAULT_CAMERA_PRESET.position.y,
+    DEFAULT_CAMERA_PRESET.position.z
+  ),
+  end: new THREE.Vector3(0, 4.4, -50)
+};
+const ROLLING_CAMERA_LOOK_OFFSET = new THREE.Vector3(
+  DEFAULT_CAMERA_PRESET.target.x - DEFAULT_CAMERA_PRESET.position.x,
+  DEFAULT_CAMERA_PRESET.target.y - DEFAULT_CAMERA_PRESET.position.y,
+  DEFAULT_CAMERA_PRESET.target.z - DEFAULT_CAMERA_PRESET.position.z
+);
+
 function getLaneTopY() {
   return LANE_DIMENSIONS.laneHeight / 2;
 }
@@ -480,9 +496,19 @@ scene.add(createBowlingBall());
 const controls = new OrbitControls(camera, renderer.domElement);
 let isOrbitEnabled = true;
 let activeCameraPresetId = null;
+let rollingCameraProgress = 0;
+let isRollingCameraActive = false;
 const cameraPresetButtons = new Map();
 const cameraPresetButtonsContainer = document.getElementById('camera-preset-buttons');
 const cameraStatusElement = document.getElementById('camera-status');
+const rollingCameraSlider = document.getElementById('rolling-camera-slider');
+const rollingCameraProgressElement = document.getElementById('rolling-camera-progress');
+
+function updateCameraStatus(text) {
+  if (cameraStatusElement) {
+    cameraStatusElement.textContent = text;
+  }
+}
 
 function setActiveCameraPreset(presetId) {
   activeCameraPresetId = presetId;
@@ -495,9 +521,49 @@ function setActiveCameraPreset(presetId) {
     button.style.borderColor = isActive ? '#fcd34d' : '#4b6584';
   });
 
-  if (cameraStatusElement && activePreset) {
-    cameraStatusElement.textContent = `Active view: ${activePreset.label}`;
+  if (activePreset) {
+    updateCameraStatus(`Active view: ${activePreset.label}`);
   }
+}
+
+function getRollingCameraPosition(progress) {
+  const clampedProgress = THREE.MathUtils.clamp(progress, 0, 1);
+  return ROLLING_CAMERA_PATH.start.clone().lerp(ROLLING_CAMERA_PATH.end, clampedProgress);
+}
+
+function syncRollingCameraUI(progress) {
+  const sliderValue = Math.round(THREE.MathUtils.clamp(progress, 0, 1) * ROLLING_CAMERA_SLIDER_MAX);
+  if (rollingCameraSlider) {
+    rollingCameraSlider.value = String(sliderValue);
+  }
+  if (rollingCameraProgressElement) {
+    rollingCameraProgressElement.textContent = `${sliderValue}%`;
+  }
+}
+
+function activateRollingCameraMode() {
+  isRollingCameraActive = true;
+  setActiveCameraPreset(null);
+}
+
+function resetRollingCameraState() {
+  rollingCameraProgress = 0;
+  isRollingCameraActive = false;
+  syncRollingCameraUI(0);
+}
+
+function setRollingCameraProgress(progress) {
+  rollingCameraProgress = THREE.MathUtils.clamp(progress, 0, 1);
+  activateRollingCameraMode();
+
+  const rollingPosition = getRollingCameraPosition(rollingCameraProgress);
+  const rollingTarget = rollingPosition.clone().add(ROLLING_CAMERA_LOOK_OFFSET);
+
+  camera.position.copy(rollingPosition);
+  controls.target.copy(rollingTarget);
+  controls.update();
+  syncRollingCameraUI(rollingCameraProgress);
+  updateCameraStatus(`Active view: Rolling Camera (${Math.round(rollingCameraProgress * 100)}%)`);
 }
 
 function applyCameraPreset(presetId) {
@@ -506,6 +572,7 @@ function applyCameraPreset(presetId) {
     return;
   }
 
+  resetRollingCameraState();
   camera.position.set(preset.position.x, preset.position.y, preset.position.z);
   controls.target.set(preset.target.x, preset.target.y, preset.target.z);
   controls.update();
@@ -531,7 +598,23 @@ function createCameraPresetUI() {
     cameraPresetButtonsContainer.appendChild(button);
   });
 }
+
+function bindRollingCameraUI() {
+  if (!rollingCameraSlider) {
+    return;
+  }
+
+  rollingCameraSlider.addEventListener('input', (event) => {
+    const sliderValue = Number(event.target.value);
+    const normalizedProgress = sliderValue / ROLLING_CAMERA_SLIDER_MAX;
+    setRollingCameraProgress(normalizedProgress);
+  });
+
+  syncRollingCameraUI(0);
+}
+
 createCameraPresetUI();
+bindRollingCameraUI();
 applyCameraPreset('default');
 
 // Handle key events
