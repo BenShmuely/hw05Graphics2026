@@ -10,16 +10,85 @@ document.body.appendChild(renderer.domElement);
 scene.background = new THREE.Color(0x1a1a2e);
 
 // Add lights to the scene
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.34);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-directionalLight.position.set(5, 20, -20);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.48);
+directionalLight.position.set(10, 30, 8);
+directionalLight.target.position.set(0, 0, -28);
 scene.add(directionalLight);
+scene.add(directionalLight.target);
 
 // Enable shadows
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 2048;
+directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.camera.left = -26;
+directionalLight.shadow.camera.right = 26;
+directionalLight.shadow.camera.top = 24;
+directionalLight.shadow.camera.bottom = -18;
+directionalLight.shadow.camera.near = 1;
+directionalLight.shadow.camera.far = 180;
+directionalLight.shadow.bias = -0.00005;
+directionalLight.shadow.normalBias = 0.0006;
+directionalLight.shadow.radius = 5;
+directionalLight.shadow.camera.updateProjectionMatrix();
+
+function createShadowSpotlight({
+  color = 0xffffff,
+  intensity,
+  position,
+  target,
+  angle,
+  penumbra,
+  decay = 1.3,
+  distance = 160,
+  mapSize = 2048
+}) {
+  const spotlight = new THREE.SpotLight(color, intensity, distance, angle, penumbra, decay);
+  spotlight.position.set(position.x, position.y, position.z);
+  spotlight.target.position.set(target.x, target.y, target.z);
+  spotlight.castShadow = true;
+  spotlight.shadow.mapSize.width = mapSize;
+  spotlight.shadow.mapSize.height = mapSize;
+  spotlight.shadow.camera.near = 1;
+  spotlight.shadow.camera.far = distance;
+  spotlight.shadow.bias = -0.00008;
+  spotlight.shadow.normalBias = 0.0012;
+  spotlight.shadow.radius = 8;
+  scene.add(spotlight);
+  scene.add(spotlight.target);
+  return spotlight;
+}
+
+createShadowSpotlight({
+  color: 0xfff2d9,
+  intensity: 0.72,
+  position: {x: -4.5, y: 15, z: 18},
+  target: {x: 0, y: 0.6, z: 2},
+  angle: THREE.MathUtils.degToRad(28),
+  penumbra: 0.65
+});
+
+createShadowSpotlight({
+  color: 0xfff0dc,
+  intensity: 0.62,
+  position: {x: -6.5, y: 12, z: -50},
+  target: {x: -0.6, y: 0.9, z: -58},
+  angle: THREE.MathUtils.degToRad(22),
+  penumbra: 0.7
+});
+
+createShadowSpotlight({
+  color: 0xfff0dc,
+  intensity: 0.62,
+  position: {x: 6.5, y: 12, z: -50},
+  target: {x: 0.6, y: 0.9, z: -58},
+  angle: THREE.MathUtils.degToRad(22),
+  penumbra: 0.7
+});
 
 const LANE_DIMENSIONS = {
   laneWidth: 3.5,
