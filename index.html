@@ -4,11 +4,310 @@
 		<meta charset="utf-8">
 		<title>HW5 - Bowling Alley</title>
 		<style>
-			body { margin: 0; }
+			:root {
+				--panel-bg: rgba(15, 23, 42, 0.78);
+				--panel-border: rgba(148, 163, 184, 0.38);
+				--panel-text: #f8fafc;
+				--panel-muted: #cbd5e1;
+				--panel-accent: #f59e0b;
+				--button-bg: rgba(36, 59, 85, 0.92);
+				--button-border: #4b6584;
+				--score-line: rgba(226, 232, 240, 0.22);
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				font-family: Arial, sans-serif;
+				background: #020617;
+				color: var(--panel-text);
+				overflow: hidden;
+			}
+
+			canvas {
+				display: block;
+			}
+
+			#ui-shell {
+				position: fixed;
+				inset: 0;
+				pointer-events: none;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+				padding: 18px;
+			}
+
+			.ui-panel {
+				pointer-events: auto;
+				background: var(--panel-bg);
+				border: 1px solid var(--panel-border);
+				border-radius: 14px;
+				backdrop-filter: blur(10px);
+				box-shadow: 0 14px 40px rgba(2, 6, 23, 0.32);
+			}
+
+			#scorecard-panel {
+				align-self: center;
+				width: min(100%, 1080px);
+				padding: 14px 16px 16px;
+			}
+
+			#scorecard-panel h2,
+			#controls-panel h2,
+			#camera-preset-section h3 {
+				margin: 0;
+				font-size: 18px;
+				font-weight: 700;
+				letter-spacing: 0.02em;
+			}
+
+			#scorecard-panel p,
+			#controls-panel p,
+			#controls-panel li {
+				margin: 0;
+				color: var(--panel-muted);
+				font-size: 14px;
+				line-height: 1.45;
+			}
+
+			#scorecard-meta {
+				margin-top: 6px;
+			}
+
+			#scorecard-grid {
+				margin-top: 14px;
+				display: grid;
+				grid-template-columns: repeat(10, minmax(78px, 1fr));
+				gap: 10px;
+			}
+
+			.score-frame {
+				border: 1px solid var(--score-line);
+				border-radius: 10px;
+				padding: 8px;
+				background: rgba(255, 255, 255, 0.04);
+				min-height: 86px;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+			}
+
+			.score-frame-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 10px;
+				font-size: 12px;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				color: var(--panel-muted);
+			}
+
+			.score-rolls {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 6px;
+			}
+
+			.score-frame.tenth .score-rolls {
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+			}
+
+			.score-roll {
+				border: 1px solid var(--score-line);
+				border-radius: 6px;
+				min-height: 24px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 13px;
+				color: #e2e8f0;
+				background: rgba(15, 23, 42, 0.45);
+			}
+
+			.score-total {
+				margin-top: 12px;
+				padding-top: 10px;
+				border-top: 1px solid var(--score-line);
+				font-size: 13px;
+				color: #f8fafc;
+			}
+
+			#hud-row {
+				display: flex;
+				justify-content: space-between;
+				align-items: flex-end;
+				gap: 16px;
+			}
+
+			#controls-panel {
+				width: min(100%, 340px);
+				padding: 16px;
+			}
+
+			#controls-copy {
+				margin-top: 10px;
+				display: grid;
+				gap: 8px;
+			}
+
+			#future-controls-note {
+				margin-top: 14px;
+				padding-top: 12px;
+				border-top: 1px solid var(--score-line);
+			}
+
+			#camera-preset-section {
+				margin-top: 16px;
+			}
+
+			#camera-preset-section p {
+				margin-top: 6px;
+			}
+
+			#camera-preset-buttons {
+				margin-top: 10px;
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+			}
+
+			.camera-preset-button {
+				padding: 8px 10px;
+				border: 1px solid var(--button-border);
+				border-radius: 6px;
+				background: var(--button-bg);
+				color: var(--panel-text);
+				font-size: 13px;
+				cursor: pointer;
+			}
+
+			#camera-status {
+				margin-top: 10px;
+				font-size: 13px;
+				color: #dbeafe;
+			}
+
+			@media (max-width: 1080px) {
+				body {
+					overflow: auto;
+				}
+
+				#ui-shell {
+					position: absolute;
+				}
+
+				#scorecard-grid {
+					grid-template-columns: repeat(5, minmax(78px, 1fr));
+				}
+			}
+
+			@media (max-width: 720px) {
+				#ui-shell {
+					padding: 12px;
+					gap: 12px;
+				}
+
+				#scorecard-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
+				#hud-row {
+					flex-direction: column;
+					align-items: stretch;
+				}
+
+				#controls-panel {
+					width: 100%;
+				}
+			}
 		</style>
 		<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>
 	</head>
 	<body>
+		<div id="ui-shell">
+			<section id="scorecard-panel" class="ui-panel" aria-label="Bowling scorecard placeholder">
+				<h2>Scorecard Placeholder</h2>
+				<p id="scorecard-meta">Static 10-frame scaffold for HW06 scoring and frame updates.</p>
+				<div id="scorecard-grid">
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 1</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 2</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 3</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 4</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 5</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 6</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 7</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 8</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame">
+						<div class="score-frame-header"><span>Frame 9</span><span>--</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+					<div class="score-frame tenth">
+						<div class="score-frame-header"><span>Frame 10</span><span>Final</span></div>
+						<div class="score-rolls"><div class="score-roll">-</div><div class="score-roll">-</div><div class="score-roll">-</div></div>
+						<div class="score-total">Total: --</div>
+					</div>
+				</div>
+			</section>
+
+			<div id="hud-row">
+				<section id="controls-panel" class="ui-panel" aria-label="Bowling controls placeholder">
+					<h2>Controls</h2>
+					<div id="controls-copy">
+						<p><strong>O</strong> toggles orbit camera control.</p>
+						<p><strong>1 / 2 / 3</strong> switch between the saved camera views.</p>
+						<p>This panel is reserved for HW06 aiming, power, and release instructions.</p>
+					</div>
+					<div id="camera-preset-section">
+						<h3>Camera Views</h3>
+						<p>Switch viewpoints with the keyboard or the buttons below.</p>
+						<div id="camera-preset-buttons"></div>
+						<div id="camera-status">Active view: Default View</div>
+					</div>
+					<div id="future-controls-note">
+						<p>Future interactive widgets will appear here: aim mode, power meter, and frame-by-frame prompts.</p>
+					</div>
+				</section>
+			</div>
+		</div>
+
 		<script src="src/hw5.js" type="module"></script>
 
 	</body>
